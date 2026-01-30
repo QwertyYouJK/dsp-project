@@ -1,6 +1,3 @@
-mic0 (0.00, 0.00) channel 1 delay = 0
-mic1 (0.018, ) channel 2
-
 ch1-ch2: 35mm
 ch1-ch3: 60mm
 ch1-ch4: 69.462mm
