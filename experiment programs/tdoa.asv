@@ -1,0 +1,20 @@
+info = audioinfo(filename);
+Sr = info.SampleRate;
+filename = 'recording_8ch.wav';
+
+startT = 1.1;
+endT = 1.4;
+
+startSample = floor(startT * Sr) + 1;
+endSample = floor(endT * Sr);
+
+[x, fs] = audioread("recording_8ch.wav", [startSample, endSample]);
+
+% x1 = x(:,1);
+% x2 = x(:,2);
+% 
+% % sound(x1, Sr)
+% % sound(x2, Sr)
+% tau = gccphat(x1, x2, Sr);
+% 
+% fprintf("tau = %.9f s  (%.3f samples)\n", tau, tau*Sr);
