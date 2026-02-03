@@ -23,8 +23,9 @@ static constexpr double PI = 3.14159265358979323846;
 // -------------------- Audio / stream constants --------------------
 constexpr int SAMPLE_RATE = 48000;
 constexpr int IN_CH = 8;
-constexpr int OUT_CH = 1;
+// constexpr int OUT_CH = 1;
 constexpr int FRAME = 480;
+constexpr int DEVICE_INDEX = 3;
 
 // -------------------- DOA constants (same values) -----------------
 constexpr int M = 6;        // use ch0..ch5
@@ -39,7 +40,7 @@ constexpr int RING = SAMPLE_RATE; // 1 second ring buffer per channel
 constexpr int SEARCH = 4800;      // samples
 constexpr float TRIG = 0.02f;
 
-constexpr uint64_t UPDATE_EVERY = 10; // frames (50 * 10ms = 500ms)
+constexpr uint64_t UPDATE_EVERY = 30; // frames (50 * 10ms = 500ms)
 
 static inline double mod360(double deg)
 {
@@ -372,16 +373,47 @@ int main()
 {
     std::atomic<bool> run{true};
     std::thread stopper([&]
-                        { std::string line; std::getline(std::cin, line); run = false; });
-
+                        {
+                            std::string line;
+                            if (std::getline(std::cin, line))
+                            {
+                                run = false; // only stop on real Enter
+                            }
+                            // if getline fails (EOF), do nothing -> program keeps running
+                        });
     if (Pa_Initialize() != paNoError)
         return 1;
 
+    std::cout << "\n\n"; // separate stderr
+
     PaStream *stream = nullptr;
-    if (Pa_OpenDefaultStream(&stream, IN_CH, OUT_CH, paFloat32, SAMPLE_RATE, FRAME, nullptr, nullptr) != paNoError)
+    PaStreamParameters inParams{};
+    inParams.device = DEVICE_INDEX; // <-- your 8ch device index
+    inParams.channelCount = IN_CH;
+    inParams.sampleFormat = paFloat32;
+    inParams.suggestedLatency = Pa_GetDeviceInfo(inParams.device)->defaultHighInputLatency;
+    inParams.hostApiSpecificStreamInfo = nullptr;
+
+    PaError err = Pa_OpenStream(&stream,
+                                &inParams,
+                                nullptr, // output = none
+                                SAMPLE_RATE,
+                                paFramesPerBufferUnspecified, // <-- avoids ALSA frame-size constraints
+                                paNoFlag,
+                                nullptr, nullptr);
+
+    if (err != paNoError)
+    {
+        std::cerr << "Pa_OpenStream failed: " << Pa_GetErrorText(err) << " (" << err << ")\n";
         return 1;
-    if (Pa_StartStream(stream) != paNoError)
+    }
+
+    err = Pa_StartStream(stream);
+    if (err != paNoError)
+    {
+        std::cerr << "Pa_StartStream failed: " << Pa_GetErrorText(err) << " (" << err << ")\n";
         return 1;
+    }
 
     std::array<DenoiseState *, M> st{};
     for (int ch = 0; ch < M; ch++)
@@ -397,7 +429,7 @@ int main()
 
     std::vector<float> in((size_t)FRAME * (size_t)IN_CH);
     std::vector<float> den((size_t)M * (size_t)FRAME);
-    std::vector<float> play(FRAME);
+    // std::vector<float> play(FRAME);
 
     std::vector<float> tmp(FRAME);
     std::vector<float> tmp16(FRAME);
@@ -414,7 +446,27 @@ int main()
         if (e == paInputOverflowed)
             continue;
         if (e != paNoError)
+        {
+            std::cerr << "Pa_ReadStream error: " << Pa_GetErrorText(e) << " (" << e << ")\n";
             break;
+        }
+
+        // test ch7 and ch8
+        auto rms_ch = [&](int ch)
+        {
+            double s = 0.0;
+            for (int i = 0; i < FRAME; i++)
+            {
+                float v = in[(size_t)i * (size_t)IN_CH + (size_t)ch];
+                s += (double)v * (double)v;
+            }
+            return std::sqrt(s / FRAME);
+        };
+
+        if (k % 50 == 0)
+        { // ~ every 0.5s (since FRAME=480 @48k => 10ms per frame)
+            std::cout << "RMS ch7=" << rms_ch(6) << "  ch8=" << rms_ch(7) << "\n";
+        }
 
         // RNNoise on ch0..5
         for (int ch = 0; ch < M; ch++)
@@ -441,8 +493,8 @@ int main()
         totalWritten += FRAME;
 
         // play denoised ch0
-        std::copy_n(den.begin(), FRAME, play.begin());
-        Pa_WriteStream(stream, play.data(), FRAME);
+        // std::copy_n(den.begin(), FRAME, play.begin());
+        // Pa_WriteStream(stream, play.data(), FRAME);
 
         if (++k % UPDATE_EVERY)
             continue;

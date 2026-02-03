@@ -30,5 +30,5 @@ Each directory contains its own README with exact build/run details and dependen
 ## Recommended entry points
 If you only want the “best” version of each component, start with:
 - AEC: `aec_test/webrtc_test.cpp`
-- TDOA/DoA: `tdoa_test/tdoa_realtime_lnx.cpp`
+- TDOA/DoA: `tdoa_test/tdoa_realtime.cpp`
 - RNNoise: `ns_test/rnnoise.cpp`

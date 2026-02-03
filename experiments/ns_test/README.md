@@ -6,9 +6,9 @@ This folder contains test programs and prototypes for reducing background noise 
 
 ```
 ns_test/
-├── README.md           
+├── rnnoise.cpp             # Noise suppression prototype
 ├── recording_8ch_nc.wav    # example output
-└── rnnoise.cpp             # Noise suppression prototype
+└── README.md
 ```
 
 ## What this prototype does
@@ -42,7 +42,7 @@ Install:
 sudo apt install -y portaudio19-dev librnnoise-dev
 ```
 
-Bulid:
+Build:
 ```bash
 g++ -O3 -std=c++17 rnnoise.cpp -o rnnoise \
   $(pkg-config --cflags --libs portaudio-2.0 rnnoise) \

@@ -7,9 +7,9 @@ This folder contains test programs and prototypes for removing speaker playback 
 ```
 aec_test/
 ├── music_remove.cpp    # AEC using a reference/monitor channel (ch7/ch8)
-├── README.md           
 ├── speex_test.cpp      # prototype AEC with SpeexDSP
-└── webrtc_test.cpp     # prototype AEC with WebRTC Audio Processing
+├── webrtc_test.cpp     # prototype AEC with WebRTC Audio Processing
+└── README.md
 ```
 
 
@@ -68,7 +68,7 @@ Install:
 ```bash
 sudo apt install portaudio19-dev libwebrtc-audio-processing-dev
 ```
-Bulid:
+Build:
 ```bash
 g++ -O3 -std=c++17 webrtc_test.cpp -o webrtc_test \
   $(pkg-config --cflags --libs webrtc-audio-processing-2 portaudio-2.0) \
@@ -84,7 +84,7 @@ Install:
 ```bash
 sudo apt install portaudio19-dev libspeexdsp-dev
 ```
-Bulid:
+Build:
 ```bash
 g++ -O3 -std=c++17 speex_test.cpp -o speex_test \
   $(pkg-config --cflags --libs speexdsp portaudio-2.0) \
@@ -100,7 +100,7 @@ Install:
 ```bash
 sudo apt install portaudio19-dev libwebrtc-audio-processing-dev
 ```
-Bulid:
+Build:
 ```bash
 g++ -O3 -std=c++17 music_remove.cpp -o music_remove \
   $(pkg-config --cflags --libs webrtc-audio-processing-2 portaudio-2.0) \
