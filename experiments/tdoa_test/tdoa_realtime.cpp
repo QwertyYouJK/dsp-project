@@ -1,8 +1,10 @@
-// realtime_doa_rnnoise_refactor.cpp
+// tdoa_realtime.cpp
 // Build (Linux example):
-// g++ -O3 -std=c++17 realtime_doa_rnnoise_refactor.cpp -lportaudio -lrnnoise -lfftw3 -lm -pthread -o realtime_doa_rnnoise
+// g++ -O3 -std=c++17 tdoa_realtime.cpp -o tdoa_realtime \
+    $(pkg-config --cflags --libs portaudio-2.0 fftw3) \
+    -lm -pthread
 // Run:
-// ./realtime_doa_rnnoise
+// PA_ALSA_PLUGHW=1 ./tdoa_realtime
 
 #include <algorithm>
 #include <array>

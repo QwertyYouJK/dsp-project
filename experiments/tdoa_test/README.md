@@ -49,6 +49,8 @@ C++ offline prototype.
 - Runs GCC-PHAT/TDOA on that segment
 - Prints the estimated DoA
 
+Note: Configure `startT` and `endT` for segment, and `file` for audio file
+
 This is mainly for debugging correctness against MATLAB.
 
 ### `tdoa_realtime.cpp`

@@ -1,6 +1,8 @@
-// tdoa_min.cpp
-// Build: g++ -O3 -std=c++17 tdoa_min.cpp -lsndfile -lfftw3 -lm -o tdoa_min
-// Run:   ./tdoa_min recording_8ch_nc.wav [startT endT]
+// tdoa_test.cpp
+// g++ -O3 -std=c++17 tdoa_test.cpp -o tdoa_test \
+    $(pkg-config --cflags --libs fftw3) \
+    -lm -pthread
+// Run: ./tdoa_test
 
 #include <sndfile.h>
 #include <fftw3.h>
@@ -167,7 +169,6 @@ int main(int argc, char **argv)
 {
     try
     {
-
         const int M = 6;             // use ch0..ch5
         const int N = 512;           // frameLen
         const double c = 343.0;      // speed of sound

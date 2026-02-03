@@ -1,6 +1,8 @@
-// pa_list_devices.cpp
-// Build: g++ -O2 -std=c++17 pa_list_devices.cpp -lportaudio -o pa_list_devices
-// Run:   ./pa_list_devices
+// pa_devices.cpp
+// Build: 
+// g++ -O3 -std=c++17 pa_devices.cpp -o pa_devices \
+  $(pkg-config --cflags --libs portaudio-2.0) -lm -pthread
+// Run:   ./pa_devices
 
 #include <iostream>
 #include <portaudio.h>

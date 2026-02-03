@@ -1,11 +1,12 @@
-// realtime_ignore_echo.cpp
+// realtime_tdoa.cpp
+
 // Build (Linux example):
-// g++ -O3 -std=c++17 realtime_ignore_echo.cpp -o realtime_ignore_echo \
-//   $(pkg-config --cflags webrtc-audio-processing-2) -lportaudio -lrnnoise -lfftw3 -lm -pthread \
-//   $(pkg-config --libs webrtc-audio-processing-2)
+// g++ -O3 -std=c++17 realtime_tdoa.cpp -o realtime_tdoa \
+    $(pkg-config --cflags --libs portaudio-2.0 rnnoise fftw3 webrtc-audio-processing-2) \
+    -lm -pthread
 //
 // Run:
-// PA_ALSA_PLUGHW=1 ./realtime_ignore_echo
+// PA_ALSA_PLUGHW=1 ./realtime_tdoa
 //
 // What it does (minimal + practical):
 // - Captures 8ch @48kHz
@@ -65,6 +66,7 @@ constexpr float PEAK_THRESH = 0.02f;     // TDOA peak theshold
 
 constexpr uint64_t UPDATE_EVERY = 30; // frames
 
+// --------------- Double talk constants --------------
 constexpr float RENDER_TH = 0.0001f;  // speaker active if rms(render) > this
 constexpr float MIC_TH = 0.005f;      // ignore quiet mic
 constexpr float NEAR_RATIO = 1000.0f; // mic must dominate render by this factor

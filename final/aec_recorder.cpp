@@ -1,3 +1,12 @@
+// aec_recorder.cpp
+// Build (Linux example):
+// g++ -O3 -std=c++17 aec_recorder.cpp -o aec_recorder \
+  $(pkg-config --cflags --libs portaudio-2.0 sndfile rnnoise) \
+  -lm -pthread
+//
+// Run:
+// PA_ALSA_PLUGHW=1 ./aec_recorder
+
 #include <iostream>
 #include <vector>
 #include <cmath>

@@ -1,3 +1,10 @@
+// rnnoise.cpp
+// Build: 
+// g++ -O3 -std=c++17 rnnoise.cpp -o rnnoise \
+  $(pkg-config --cflags --libs portaudio-2.0 rnnoise) \
+  -lm -pthread
+// Run:   PA_ALSA_PLUGHW=1 ./rnnoise
+
 #include <iostream>
 #include <vector>
 #include <cmath>

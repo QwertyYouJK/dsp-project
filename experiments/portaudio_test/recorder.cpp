@@ -1,6 +1,8 @@
-// pa_record_8ch.cpp
-// Build: g++ -O2 -std=c++17 pa_record_8ch.cpp -lportaudio -o pa_record_8ch
-// Run:   PA_ALSA_PLUGHW=1 ./pa_record_8ch
+// recorder.cpp
+// Build: 
+// g++ -O3 -std=c++17 recorder.cpp -o recorder \
+  $(pkg-config --cflags --libs portaudio-2.0) -lm -pthread
+// Run:   PA_ALSA_PLUGHW=1 ./recorder
 
 #include <portaudio.h>
 #include <cstdint>
