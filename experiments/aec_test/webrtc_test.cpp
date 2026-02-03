@@ -1,10 +1,11 @@
 // webrtc_test.cpp
-// Build: g++ -std=c++17 webrtc_test.cpp -o webrtc_test $(pkg-config --cflags webrtc-audio-processing-2) -lportaudio $(pkg-config --libs webrtc-audio-processing-2) -pthread
-// Run:   PA_ALSA_PLUGHW=1 ./webrtc_test
 //
-// Build (Ubuntu/Debian example):
-//   sudo apt install libportaudio2 portaudio19-dev libwebrtc-audio-processing-dev
-//   g++ -std=c++17 webrtc_test.cpp -o webrtc_test $(pkg-config --cflags webrtc-audio-processing-2) -lportaudio $(pkg-config --libs webrtc-audio-processing-2) -pthread
+// Install/Build:
+//  sudo apt install portaudio19-dev libwebrtc-audio-processing-dev
+//  g++ -O3 -std=c++17 webrtc_test.cpp -o webrtc_test \
+        $(pkg-config --cflags --libs webrtc-audio-processing-2 portaudio-2.0) \
+        -lm -pthread
+// Run:   PA_ALSA_PLUGHW=1 ./webrtc_test
 //
 // Notes:
 // - WebRTC AEC3 expects 10 ms frames. FRAME=480 @ 48 kHz is correct.

@@ -1,5 +1,11 @@
-// aec_test.cpp
-// Run:   PA_ALSA_PLUGHW=1 ./aec_test
+// speex_test.cpp
+//
+// Install/Build:
+//  sudo apt install portaudio19-dev libspeexdsp-dev
+//  g++ -O3 -std=c++17 speex_test.cpp -o speex_test \
+        $(pkg-config --cflags --libs speexdsp portaudio-2.0) \
+        -lm -pthread
+// Run:   PA_ALSA_PLUGHW=1 ./speex_test
 
 #include <iostream>
 #include <atomic>

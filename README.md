@@ -34,10 +34,24 @@ Developed and tested on:
 - **OS**: Ubuntu 22.04 LTS
 - **Compiler**: g++ (C++17)
 
+Development Tools:
+```bash
+sudo apt update
+sudo apt install -y build-essential pkg-config git
+```
+
 Common dependencies (varies by folder):
 - PortAudio, RNNoise, FFTW3, libsndfile, WebRTC Audio Processing, pkg-config, pthread
 
-See each folder README for exact install/build commands.
+```bash
+sudo apt install -y \
+  portaudio19-dev \
+  librnnoise-dev \
+  libfftw3-dev \
+  libsndfile1-dev \
+  libwebrtc-audio-processing-dev
+```
+See each folder README for exact build commands.
 
 ## Running the Programs
 

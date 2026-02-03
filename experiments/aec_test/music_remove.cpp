@@ -1,16 +1,15 @@
-// webrtc_cancel_music_8ch.cpp
+// music_remove.cpp
 // Input 8ch: mic1-6 + ref7-8
-// Output WAV 8ch: clean mic1-6 + raw ref7 + raw ref8
+// Output 8ch .wav: clean mic1-6 + raw ref7 + raw ref8
 //
 // Build (example):
-//   sudo apt install portaudio19-dev libwebrtc-audio-processing-dev libsndfile1-dev
-//   g++ -O2 -std=c++17 webrtc_cancel_music_8ch.cpp -o webrtc_cancel_music_8ch \
-//     $(pkg-config --cflags --libs webrtc-audio-processing-2) \
-//     $(pkg-config --cflags --libs portaudio-2.0) \
-//     $(pkg-config --cflags --libs sndfile) -pthread
+//  sudo apt install portaudio19-dev libwebrtc-audio-processing-dev
+//  g++ -O3 -std=c++17 music_remove.cpp -o music_remove \
+        $(pkg-config --cflags --libs webrtc-audio-processing-2 portaudio-2.0) \
+        -lm -pthread
 //
 // Run:
-//   PA_ALSA_PLUGHW=1 ./webrtc_cancel_music_8ch
+//   PA_ALSA_PLUGHW=1 ./music_remove
 
 #include <portaudio.h>
 #include <sndfile.h>
