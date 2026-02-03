@@ -116,3 +116,8 @@ If your device cannot do 48 kHz natively, you must run with ALSA `plughw` conver
 ```bash
 PA_ALSA_PLUGHW=1 ./<program_file>
 ```
+
+## Expected Results
+- Playback level drops significantly in the processed mic output
+- Speech remains mostly intelligible (some artifacts are acceptable)
+- Echo/feedback stops when placing microphone near speaker
