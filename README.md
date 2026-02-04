@@ -13,7 +13,7 @@ Objectives:
 ## Repository Structure
 
 ```
-dsp-project/
+audio-project/
 ├── experiments/        # components tests/prototypes
 │   ├── ...
 ├── final/              # runnable programs
