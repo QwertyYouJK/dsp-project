@@ -3,7 +3,7 @@ This project was done during my summer internship at Robocore and Rhizo. It invo
 
 ## Overview
 
-Six microphones arranged in a circular array are connected to an 8-channel sound card. The sound card is plugged into the PC as the multi-channel input. Two additional channels are used for monitoring/reference (depending on the program). The PC output drives a pair of speakers for monitoring.
+Six microphones arranged in a circular array are connected to an 8-channel sound card. The sound card is plugged into the PC as the multi-channel input. The remaining two channels are used for monitoring/reference (depending on the program). The PC output drives a pair of speakers for monitoring.
 
 Objectives:
 - When recording human voice, suppress background noise
@@ -30,32 +30,24 @@ Each directory contains its own README with build/run details.
 
 ## Installation and Setup
 
-Developed and tested on:
+The programs are developed and tested on:
 - **OS**: Ubuntu 22.04 LTS
 - **Compiler**: g++ (C++17)
 
 Development Tools:
 ```bash
 sudo apt update
-sudo apt install -y build-essential pkg-config git
+sudo apt install -y build-essential pkg-config build autogen automake libtool git
 ```
 
 Common dependencies (varies by folder):
-- PortAudio, RNNoise, FFTW3, libsndfile, WebRTC Audio Processing, pkg-config, pthread
+- PortAudio, RNNoise, FFTW3, libsndfile, WebRTC Audio Processing, pkg-config
 
-```bash
-sudo apt install -y \
-  portaudio19-dev \
-  librnnoise-dev \
-  libfftw3-dev \
-  libsndfile1-dev \
-  libwebrtc-audio-processing-dev
-```
-See each folder README for exact build commands.
+See each folder README for exact build and run commands.
 
-## Running the Programs
+## Final Programs
 
-Two final programs:
+Two final programs in `final/`:
 
 - `aec_recorder`: Records 5 seconds from the microphone array (and monitor/reference if applicable). Processes audio in real time with noise suppression and echo cancellation. Intended outcome: speech remains while speaker playback is strongly reduced.
 

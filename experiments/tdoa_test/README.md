@@ -49,14 +49,14 @@ C++ offline prototype.
 - Runs GCC-PHAT/TDOA on that segment
 - Prints the estimated DoA
 
-Note: Configure `startT` and `endT` for segment, and `file` for audio file
+Note: Configure `startT` and `endT` for segment, and `file` for audio file's name. Audio file must be in the same directory as `tdoa_test`.
 
 This is mainly for debugging correctness against MATLAB.
 
 ### `tdoa_realtime.cpp`
 C++ real-time prototype.
 - Opens the microphone array stream continuously
-- Detects loud moments
+- Detects loud moments; Integrated RNNoise to only detect loud voices
 - Runs GCC-PHAT/TDOA periodically and prints the angle to the terminal
 
 ## Build notes (Linux)
@@ -68,21 +68,24 @@ sudo apt install -y build-essential pkg-config
 ```
 
 Install dependencies:
+
+Note: For `tdoa_realtime`, you have to install RNNoise through its [GitHub](https://github.com/xiph/rnnoise), follow the instruction there. The rest could be installed with:
+
 ```bash
-sudo apt install -y portaudio19-dev libfftw3-dev
+sudo apt install -y portaudio19-dev libfftw3-dev libsndfile1-dev
 ```
 
 Build (real-time):
 ```bash
 g++ -O3 -std=c++17 tdoa_realtime.cpp -o tdoa_realtime \
-  $(pkg-config --cflags --libs portaudio-2.0 fftw3) \
+  $(pkg-config --cflags --libs portaudio-2.0 fftw3 rnnoise) \
   -lm -pthread
 ```
 
 Build (offline/prototype):
 ```bash
 g++ -O3 -std=c++17 tdoa_test.cpp -o tdoa_test \
-  $(pkg-config --cflags --libs fftw3) \
+  $(pkg-config --cflags --libs fftw3 sndfile) \
   -lm -pthread
 ```
 
@@ -92,8 +95,8 @@ Run:
 ./tdoa_test
 ```
 
-### ALSA plughw note
-If your device cannot do 48 kHz natively, you must run with ALSA `plughw` conversion:
+### ALSA plughw note (troubleshooting)
+If your device cannot do 48 kHz natively and you get error message: `Pa_OpenStream(in): Invalid sample rate (-9997)`, you must run with ALSA `plughw` conversion:
 ```bash
 PA_ALSA_PLUGHW=1 ./<program_file>
 ```

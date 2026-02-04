@@ -10,7 +10,7 @@ This folder contains the two main runnable programs built from the project work:
 ```
 final/
 ├── aec_recorder.cpp            # 5s recorder with noise suppression + playback leakage reduction
-├── realtime_tdoa.cpp           # real-time DoA (TDOA/GCC-PHAT) with noise suppression
+├── realtime_combo.cpp           # real-time DoA (TDOA/GCC-PHAT) with noise suppression
 └── README.md
 ```
 
@@ -60,7 +60,7 @@ Expected:
 - Speech may sound “processed” (normal RNNoise artifact).
 
 
-## 2) `realtime_tdoa.cpp`
+## 2) `realtime_combo.cpp`
 
 ### Purpose
 Estimate the direction of arrival (DoA) of speech in real time and print the angle to the terminal. Audio monitoring is enabled, so speaker will playback what the microphones received.
@@ -71,32 +71,32 @@ This program is meant for live direction estimation, not for producing the clean
 1. **Capture**: continuously reads multi-channel frames from the mic array (PortAudio).
 2. **Noise suppression (RNNoise)**: used to reduce background noise and improve reliability of event detection (and/or listening monitor).
 3. **Event gating**: only runs TDOA when the sound is “worth processing” (typically based on loudness/energy).
-4. **Echo-aware gating / double-talk detection**:
+4. **Echo-aware gating / Double-talk detection**:
    - compares microphone channels to monitor/reference channels (e.g., ch7/ch8)
-   - if strong correlation suggests the array is mostly hearing the speakers, TDOA is suppressed to avoid false angles
+   - if strong correlation suggests the mics are mostly hearing the speakers, TDOA is suppressed to avoid false angles
 5. **TDOA (GCC-PHAT)**:
-   - computes pairwise delays between selected microphone pairs using FFTW (GCC-PHAT)
+   - computes pairwise delays between microphone pairs using GCC-PHAT
 6. **Angle selection**:
    - chooses the angle that best matches the measured delays given the array geometry
 7. **Output**:
-   - prints angle estimates to the terminal (and may optionally play monitor audio depending on the program)
+   - prints angle estimates to the terminal (and plays monitor audio)
 
 ### Notes on feedback (Larsen effect)
 If the mic array is close to the speakers and monitoring volume is high, there can be a feedback loop.
+
 Mitigations:
 - reduce monitor volume (GAIN and LIM_THRESH variables)
 - Use AEC/noise suppression
 
 ### Expected result
-A basic sanity test:
+A basic test:
 1. Stand ~1–2 meters from the array at a known direction.
 2. Speak short phrases.
 3. Watch the printed angle.
 
 Expected:
-- When you speak from one direction, angle outputs should cluster near that direction.
-- Jitter is normal. In a typical room, ±10–30° jitter is common without heavy smoothing.
-- When PC playback dominates (sound through speakers), TDOA **should** reduce updates or stop updating (if echo gating is working).
+- When you speak from a direction, angle output should be within a cluster near that direction.
+- When PC playback dominates (sound through speakers), TDOA should reduce updates or stop updating (if echo gating is working).
 
 ### Additional Notes
 - `IN_DEV` and `OUT_DEV` depends on device, use `/portaudio_test/pa_devices.cpp` to check device index
@@ -108,7 +108,7 @@ Expected:
 Tooling:
 ```bash
 sudo apt update
-sudo apt install -y build-essential pkg-config
+sudo apt install -y build-essential pkg-config build autogen automake libtool git
 ```
 
 Libraries used in `final/`:
@@ -119,10 +119,12 @@ Libraries used in `final/`:
 - WebRTC Audio Processing (AEC)
 
 Install (Ubuntu 22.04):
+
+Note: You have to install RNNoise through its [GitHub](https://github.com/xiph/rnnoise), follow the instruction there. The rest could be installed with:
+
 ```bash
 sudo apt install -y \
   portaudio19-dev \
-  librnnoise-dev \
   libfftw3-dev \
   libsndfile1-dev \
   libwebrtc-audio-processing-dev
@@ -135,9 +137,9 @@ g++ -O3 -std=c++17 aec_recorder.cpp -o aec_recorder \
   -lm -pthread
 ```
 
-Build `realtime_tdoa`:
+Build `realtime_combo`:
 ```bash
-g++ -O3 -std=c++17 realtime_tdoa.cpp -o realtime_tdoa \
+g++ -O3 -std=c++17 realtime_combo.cpp -o realtime_combo \
   $(pkg-config --cflags --libs portaudio-2.0 rnnoise fftw3 webrtc-audio-processing-2) \
   -lm -pthread
 ```
@@ -147,18 +149,18 @@ Run `aec_recorder`:
 ./aec_recorder
 ```
 
-Run `realtime_tdoa`:
+Run `realtime_combo`:
 ```bash
-./realtime_tdoa
+./realtime_combo
 ```
 
-### ALSA plughw note
-If your device cannot do 48 kHz natively, you must run with ALSA `plughw` conversion:
+### ALSA plughw note (troubleshooting)
+If your device cannot do 48 kHz natively and you get error message: `paInvalidSampleRate` or `Pa_OpenStream(in): Invalid sample rate (-9997)`, you must run with ALSA `plughw` conversion:
 ```bash
 PA_ALSA_PLUGHW=1 ./aec_recorder
-PA_ALSA_PLUGHW=1 ./realtime_tdoa
+PA_ALSA_PLUGHW=1 ./realtime_combo
 ```
 
 ## Expected Results
 - `aec_recorder`: output WAV emphasizes speech; background noise reduced; speaker playback leakage reduced but not guaranteed to be zero.
-- `realtime_tdoa`: prints angle estimates that cluster near the real speaker location; reduces/halts updates when playback dominates (if echo-aware gating is enabled).
+- `realtime_combo`: prints angle estimates that cluster near the real speaker location; reduces/halts updates when playback dominates (if echo-aware gating is enabled).

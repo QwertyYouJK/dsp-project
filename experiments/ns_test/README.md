@@ -37,9 +37,12 @@ sudo apt update
 sudo apt install -y build-essential pkg-config
 ```
 
-Install:
+Install dependencies:
+
+Note: You have to install RNNoise through its [GitHub](https://github.com/xiph/rnnoise), follow the instruction there. The rest could be installed with:
+
 ```bash
-sudo apt install -y portaudio19-dev librnnoise-dev
+sudo apt install -y portaudio19-dev
 ```
 
 Build:
@@ -53,8 +56,8 @@ Run:
 ./rnnoise
 ```
 
-### ALSA plughw note
-If your device cannot do 48 kHz natively, you must run with ALSA `plughw` conversion:
+### ALSA plughw note (troubleshooting)
+If your device cannot do 48 kHz natively and you get error message: `paInvalidSampleRate`, you must run with ALSA `plughw` conversion:
 ```bash
 PA_ALSA_PLUGHW=1 ./rnnoise
 ```

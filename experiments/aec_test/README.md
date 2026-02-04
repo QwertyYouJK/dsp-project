@@ -98,12 +98,12 @@ Run:
 ### Reference-channel removal test
 Install:
 ```bash
-sudo apt install portaudio19-dev libwebrtc-audio-processing-dev
+sudo apt install portaudio19-dev libwebrtc-audio-processing-dev libsndfile1-dev
 ```
 Build:
 ```bash
 g++ -O3 -std=c++17 music_remove.cpp -o music_remove \
-  $(pkg-config --cflags --libs webrtc-audio-processing-2 portaudio-2.0) \
+  $(pkg-config --cflags --libs webrtc-audio-processing-2 portaudio-2.0 sndfile) \
   -lm -pthread
 ```
 Run:
@@ -111,8 +111,8 @@ Run:
 ./music_remove
 ```
 
-### ALSA plughw note
-If your device cannot do 48 kHz natively, you must run with ALSA `plughw` conversion:
+### ALSA plughw note (troubleshooting)
+If your device cannot do 48 kHz natively and you get error message: `Pa_OpenStream(in): Invalid sample rate (-9997)`, you must run with ALSA `plughw` conversion:
 ```bash
 PA_ALSA_PLUGHW=1 ./<program_file>
 ```

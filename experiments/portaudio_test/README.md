@@ -36,7 +36,7 @@ sudo apt update
 sudo apt install -y build-essential pkg-config
 ```
 
-Install dependencies:
+Install dependency:
 ```bash
 sudo apt install -y portaudio19-dev
 ```
@@ -57,8 +57,8 @@ Run:
 ./recorder
 ```
 
-### ALSA plughw note
-If your device cannot do 48 kHz natively, you must run with ALSA `plughw` conversion:
+### ALSA plughw note (troubleshooting)
+If your device cannot do 48 kHz natively and you get error message: `Pa_OpenStream(in): Invalid sample rate (-9997)`, you must run with ALSA `plughw` conversion:
 ```bash
 PA_ALSA_PLUGHW=1 ./<program_file>
 ```

@@ -1,12 +1,12 @@
-// realtime_tdoa.cpp
+// realtime_combo.cpp
 
 // Build (Linux example):
-// g++ -O3 -std=c++17 realtime_tdoa.cpp -o realtime_tdoa \
+// g++ -O3 -std=c++17 realtime_combo.cpp -o realtime_combo \
     $(pkg-config --cflags --libs portaudio-2.0 rnnoise fftw3 webrtc-audio-processing-2) \
     -lm -pthread
 //
 // Run:
-// PA_ALSA_PLUGHW=1 ./realtime_tdoa
+// PA_ALSA_PLUGHW=1 ./realtime_combo
 //
 // What it does (minimal + practical):
 // - Captures 8ch @48kHz
