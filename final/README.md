@@ -9,8 +9,8 @@ This folder contains the two main runnable programs built from the project work:
 
 ```
 final/
-├── aec_recorder.cpp            # 5s recorder with noise suppression + playback leakage reduction
-├── realtime_combo.cpp           # real-time DoA (TDOA/GCC-PHAT) with noise suppression
+├── aec_recorder.cpp          # 5s recorder with noise suppression + playback leakage reduction
+├── realtime_combo.cpp        # real-time DoA (TDOA/GCC-PHAT) with noise suppression
 └── README.md
 ```
 
@@ -63,7 +63,7 @@ Expected:
 ## 2) `realtime_combo.cpp`
 
 ### Purpose
-Estimate the direction of arrival (DoA) of speech in real time and print the angle to the terminal. Audio monitoring is enabled, so speaker will playback what the microphones received.
+Estimate the direction of arrival (DoA) of speech in real time and print the angle to the terminal. If audio monitoring is enabled, the speaker will playback what the microphones received.
 
 This program is meant for live direction estimation, not for producing the cleanest recording.
 
@@ -71,22 +71,19 @@ This program is meant for live direction estimation, not for producing the clean
 1. **Capture**: continuously reads multi-channel frames from the mic array (PortAudio).
 2. **Noise suppression (RNNoise)**: used to reduce background noise and improve reliability of event detection (and/or listening monitor).
 3. **Event gating**: only runs TDOA when the sound is “worth processing” (typically based on loudness/energy).
-4. **Echo-aware gating / Double-talk detection**:
-   - compares microphone channels to monitor/reference channels (e.g., ch7/ch8)
-   - if strong correlation suggests the mics are mostly hearing the speakers, TDOA is suppressed to avoid false angles
-5. **TDOA (GCC-PHAT)**:
+4. **TDOA (GCC-PHAT)**:
    - computes pairwise delays between microphone pairs using GCC-PHAT
-6. **Angle selection**:
+5. **Angle selection**:
    - chooses the angle that best matches the measured delays given the array geometry
-7. **Output**:
-   - prints angle estimates to the terminal (and plays monitor audio)
+6. **Output**:
+   - prints angle estimates to the terminal (and optionally plays monitor audio)
 
-### Notes on feedback (Larsen effect)
-If the mic array is close to the speakers and monitoring volume is high, there can be a feedback loop.
+### Notes on sound monitoring (Feedback loop)
+When audio monitoring is enabled, if the mic array is close to the speakers and monitoring volume is high, there can be a feedback loop.
 
 Mitigations:
-- reduce monitor volume (GAIN and LIM_THRESH variables)
-- Use AEC/noise suppression
+- reduce audio monitor volume (GAIN and LIM_THRESH variables)
+- Use implemented AEC/noise suppression to avoid echoing and howling
 
 ### Expected result
 A basic test:
@@ -96,7 +93,6 @@ A basic test:
 
 Expected:
 - When you speak from a direction, angle output should be within a cluster near that direction.
-- When PC playback dominates (sound through speakers), TDOA should reduce updates or stop updating (if echo gating is working).
 
 ### Additional Notes
 - `IN_DEV` and `OUT_DEV` depends on device, use `/portaudio_test/pa_devices.cpp` to check device index

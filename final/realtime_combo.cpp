@@ -12,7 +12,7 @@
 // - Captures 8ch @48kHz
 // - (if enabled) RNNoise denoise on ch0..ch5 -> ring buffer -> GCC-PHAT DOA (same as your TDOA code)
 // - (if enabled) WebRTC AEC3 on mono monitor path (mic ch0) + optional RNNoise on that monitor output
-// - Plays mono output to speaker
+// - (if enabled) Plays mono output to speaker
 
 #include <algorithm>
 #include <array>
@@ -30,7 +30,6 @@
 #include "rnnoise.h"
 
 #include "api/audio/audio_processing.h"
-// #include "api/audio/audio_processing_builder.h"
 #include "api/scoped_refptr.h"
 
 static constexpr double PI = 3.14159265358979323846;
@@ -48,8 +47,9 @@ constexpr int FRAME = 480;         // number of frames in the buffer
 constexpr float GAIN = 0.2f;       // mic gain
 constexpr float LIM_THRESH = 0.1f; // limiter threshold
 
-constexpr bool USE_AEC = true; // AEC toggle
-constexpr bool USE_NS = true;  // Noise suppression toggle
+constexpr bool USE_AEC = true;      // AEC toggle
+constexpr bool USE_NS = true;       // Noise suppression toggle
+constexpr bool USE_MONITOR = false; // toggle audio monitoring
 
 // -------------------- DOA constants -----------------
 constexpr int M = 6;                 // number of input channels using
@@ -60,19 +60,11 @@ constexpr double STEP_DEG = 0.5;     // angle checking step size
 constexpr int N_THETA = 360.0 / 0.5; // number of angles
 constexpr double OK_FACTOR = 1.20;   // range of acceptable angles
 
-constexpr int RING = SAMPLE_RATE; // ring buffer sample rate
-constexpr int SEARCH = 4800;      // required samples for TDOA
-constexpr float PEAK_THRESH = 0.02f;     // TDOA peak theshold
+constexpr int RING = SAMPLE_RATE;    // ring buffer sample rate
+constexpr int SEARCH = 4800;         // required samples for TDOA
+constexpr float PEAK_THRESH = 0.02f; // TDOA peak threshold
 
 constexpr uint64_t UPDATE_EVERY = 30; // frames
-
-// --------------- Double talk constants --------------
-constexpr float RENDER_TH = 0.0001f;  // speaker active if rms(render) > this
-constexpr float MIC_TH = 0.005f;      // ignore quiet mic
-constexpr float NEAR_RATIO = 1000.0f; // mic must dominate render by this factor
-constexpr float ECHO_CORR_TH = 0.4f;  // echo-likeness threshold (normalized corr peak)
-
-constexpr int RENDER_RING = SAMPLE_RATE; // 1s render history
 
 static void err_pa(const char *where, PaError err)
 {
@@ -122,62 +114,6 @@ static inline double mod360(double deg)
     if (y < 0)
         y += 360.0;
     return y;
-}
-
-static inline float echo_corr_peak(const float *mic, int n,
-                                   const std::vector<float> &rr, int ringN, int wpos,
-                                   int centerDelaySamp, int slackSamp, int stepSamp)
-{
-    float best = 0.0f;
-
-    int d0 = std::max(0, centerDelaySamp - slackSamp);
-    int d1 = std::min(ringN - n - 1, centerDelaySamp + slackSamp);
-
-    for (int d = d0; d <= d1; d += stepSamp)
-    {
-        double dot = 0.0, em = 0.0, er = 0.0;
-
-        // compare current mic frame with render frame that occurred d samples earlier
-        int base = wpos - d - n;
-        for (int i = 0; i < n; i++)
-        {
-            int idx = base + i;
-            idx %= ringN;
-            if (idx < 0)
-                idx += ringN;
-
-            float r = rr[(size_t)idx];
-            float m = mic[i];
-
-            dot += (double)m * (double)r;
-            em += (double)m * (double)m;
-            er += (double)r * (double)r;
-        }
-
-        double den = std::sqrt(em * er) + 1e-12;
-        float c = (float)std::fabs(dot / den);
-        if (c > best)
-            best = c;
-    }
-
-    return best;
-}
-
-static inline float render_rms_at_delay(const std::vector<float> &rr, int ringN, int wpos,
-                                        int delaySamp, int n)
-{
-    double s = 0.0;
-    int base = wpos - delaySamp - n; // same alignment as echo_corr_peak uses for d=delaySamp
-    for (int i = 0; i < n; i++)
-    {
-        int idx = base + i;
-        idx %= ringN;
-        if (idx < 0)
-            idx += ringN;
-        float r = rr[(size_t)idx];
-        s += (double)r * (double)r;
-    }
-    return (float)std::sqrt(s / (double)n);
 }
 
 struct PairMeas
@@ -542,36 +478,42 @@ int main()
 
     // ---------- Output stream ----------
     PaStream *outStream = nullptr;
-    PaStreamParameters outParams{};
-    outParams.device = OUT_DEV;
-    outParams.channelCount = OUT_CH;
-    outParams.sampleFormat = paFloat32;
+    const PaStreamInfo *outInfo = nullptr;
 
-    auto outDevInfo = Pa_GetDeviceInfo(outParams.device);
-    double want = 0.20;
-    outParams.suggestedLatency = (outDevInfo->defaultHighOutputLatency > want)
-                                     ? outDevInfo->defaultHighOutputLatency
-                                     : want;
+    if (USE_MONITOR)
+    {
+        PaStreamParameters outParams{};
+        outParams.device = OUT_DEV;
+        outParams.channelCount = OUT_CH;
+        outParams.sampleFormat = paFloat32;
 
-    err = Pa_OpenStream(&outStream,
-                        nullptr,
-                        &outParams,
-                        SAMPLE_RATE,
-                        FRAME,
-                        paNoFlag,
-                        nullptr, nullptr);
-    if (err != paNoError)
-        err_pa("Pa_OpenStream(out)", err);
+        auto outDevInfo = Pa_GetDeviceInfo(outParams.device);
+        double want = 0.20;
+        outParams.suggestedLatency = (outDevInfo->defaultHighOutputLatency > want)
+                                         ? outDevInfo->defaultHighOutputLatency
+                                         : want;
 
-    err = Pa_StartStream(outStream);
-    if (err != paNoError)
-        err_pa("Pa_StartStream(out)", err);
+        err = Pa_OpenStream(&outStream,
+                            nullptr,
+                            &outParams,
+                            SAMPLE_RATE,
+                            FRAME,
+                            paNoFlag,
+                            nullptr, nullptr);
+        if (err != paNoError)
+            err_pa("Pa_OpenStream(out)", err);
+
+        err = Pa_StartStream(outStream);
+        if (err != paNoError)
+            err_pa("Pa_StartStream(out)", err);
+
+        outInfo = Pa_GetStreamInfo(outStream);
+    }
 
     const PaStreamInfo *inInfo = Pa_GetStreamInfo(inStream);
-    const PaStreamInfo *outInfo = Pa_GetStreamInfo(outStream);
 
     int delay_ms = 0;
-    if (inInfo && outInfo)
+    if (USE_MONITOR && inInfo && outInfo)
     {
         double d = (inInfo->inputLatency + outInfo->outputLatency) * 1000.0;
         if (d < 0)
@@ -650,6 +592,7 @@ int main()
 
     std::cout << "AEC=" << (USE_AEC ? "ON" : "OFF")
               << " NS=" << (USE_NS ? "ON" : "OFF")
+              << " MON=" << (USE_MONITOR ? "ON" : "OFF")
               << " DOA=ON (GCC-PHAT) Press Enter to stop.\n";
 
     uint64_t k = 0;
@@ -714,118 +657,75 @@ int main()
         for (int i = 0; i < FRAME; i++)
             mic_f[i] = in[(size_t)i * (size_t)IN_CH + 0];
 
-        // Process capture stream (AEC)
-        const float *cap_in[1] = {mic_f.data()};
-        float *cap_out[1] = {out_f.data()};
-
-        if (USE_AEC)
-            apm->set_stream_delay_ms(delay_ms);
-
-        int pr = apm->ProcessStream(cap_in, mono_cfg, mono_cfg, cap_out);
-        if (pr != webrtc::AudioProcessing::kNoError)
+        if (USE_MONITOR)
         {
+            // Process capture stream (AEC)
+            const float *cap_in[1] = {mic_f.data()};
+            float *cap_out[1] = {out_f.data()};
+
+            if (USE_AEC)
+                apm->set_stream_delay_ms(delay_ms);
+
+            int pr = apm->ProcessStream(cap_in, mono_cfg, mono_cfg, cap_out);
+            if (pr != webrtc::AudioProcessing::kNoError)
+            {
+                for (int i = 0; i < FRAME; i++)
+                    out_f[i] = mic_f[i];
+                if (k % 200 == 0)
+                    std::cerr << "ProcessStream err=" << pr << "\n";
+            }
+
+            // Optional: RNNoise on the monitor output (after AEC)
+            if (USE_NS)
+            {
+                for (int i = 0; i < FRAME; i++)
+                    tmp16[i] = out_f[i] * 32768.0f;
+                rnnoise_process_frame(st_out, out16.data(), tmp16.data());
+                for (int i = 0; i < FRAME; i++)
+                    out_f[i] = out16[i] / 32768.0f;
+            }
+
+            // Build speaker buffer (apply gain -> apply limiter -> prevent clip)
             for (int i = 0; i < FRAME; i++)
-                out_f[i] = mic_f[i];
-            if (k % 200 == 0)
-                std::cerr << "ProcessStream err=" << pr << "\n";
-        }
+                play[i] = out_f[i] * GAIN;
 
-        // Optional: RNNoise on the monitor output (after AEC)
-        if (USE_NS)
-        {
+            apply_limiter(play.data(), FRAME, LIM_THRESH, lim_gain);
+
             for (int i = 0; i < FRAME; i++)
-                tmp16[i] = out_f[i] * 32768.0f;
-            rnnoise_process_frame(st_out, out16.data(), tmp16.data());
+            {
+                float y = play[i];
+                if (y > 1.0f)
+                    y = 1.0f;
+                if (y < -1.0f)
+                    y = -1.0f;
+                play[i] = y;
+            }
+
             for (int i = 0; i < FRAME; i++)
-                out_f[i] = out16[i] / 32768.0f;
+                render_ring[(size_t)((render_wpos + i) % RENDER_RING)] = play[i];
+            render_wpos = (render_wpos + FRAME) % RENDER_RING;
+            render_total += FRAME;
+
+            // Save actual output as next frame's AEC reference
+            for (int i = 0; i < FRAME; i++)
+                render_prev[i] = play[i];
+
+            // if (++k % 100 == 0)
+            // {
+            //     std::cout << "RMS play=" << rms_f32_frame(play.data(), FRAME) << "\n";
+            // }
+
+            PaError w = Pa_WriteStream(outStream, play.data(), FRAME);
+            if (w == paOutputUnderflowed)
+                continue;
+            if (w != paNoError)
+            {
+                std::cerr << "Pa_WriteStream: " << Pa_GetErrorText(w) << " (" << w << ")\n";
+                break;
+            }
         }
-
-        // Build speaker buffer (apply gain -> apply limiter -> prevent clip)
-        for (int i = 0; i < FRAME; i++)
-            play[i] = out_f[i] * GAIN;
-
-        apply_limiter(play.data(), FRAME, LIM_THRESH, lim_gain);
-
-        for (int i = 0; i < FRAME; i++)
-        {
-            float y = play[i];
-            if (y > 1.0f)
-                y = 1.0f;
-            if (y < -1.0f)
-                y = -1.0f;
-            play[i] = y;
-        }
-
-        for (int i = 0; i < FRAME; i++)
-            render_ring[(size_t)((render_wpos + i) % RENDER_RING)] = play[i];
-        render_wpos = (render_wpos + FRAME) % RENDER_RING;
-        render_total += FRAME;
-
-        // Save actual output as next frame's AEC reference
-        for (int i = 0; i < FRAME; i++)
-            render_prev[i] = play[i];
-
-        // if (++k % 100 == 0)
-        // {
-        //     std::cout << "RMS play=" << rms_f32_frame(play.data(), FRAME) << "\n";
-        // }
-
-        PaError w = Pa_WriteStream(outStream, play.data(), FRAME);
-        if (w == paOutputUnderflowed)
-            continue;
-        if (w != paNoError)
-        {
-            std::cerr << "Pa_WriteStream: " << Pa_GetErrorText(w) << " (" << w << ")\n";
-            break;
-        }
-
         // DOA update every UPDATE_EVERY
         if (++k % UPDATE_EVERY)
-            continue;
-
-        int center = (int)lrint((delay_ms / 1000.0) * SAMPLE_RATE);
-        int slack = 4 * FRAME; // +/- 40ms search window
-        int step = 16;         // CPU reduction
-
-        // render_rms must refer to the SAME delayed render segment used by correlation
-        float render_rms = 0.0f;
-        if (render_total > (FRAME + center))
-            render_rms = render_rms_at_delay(render_ring, RENDER_RING, render_wpos, center, FRAME);
-
-        float mic_rms = (float)rms_f32_frame(mic_f.data(), FRAME);
-
-        bool speaker_active = (render_rms > RENDER_TH);
-        bool near_dominant = (mic_rms > MIC_TH) && (mic_rms > NEAR_RATIO * (render_rms + 1e-6f));
-
-        float corrpk = 0.0f;
-        bool echo_like = false;
-
-        if (speaker_active && render_total > RENDER_RING / 2)
-        {
-            corrpk = echo_corr_peak(mic_f.data(), FRAME,
-                                    render_ring, RENDER_RING, render_wpos,
-                                    center, slack, step);
-            echo_like = (corrpk > ECHO_CORR_TH);
-        }
-
-        // static uint64_t dbg = 0;
-        // if ((dbg++ % 1) == 0) // change %1 to %5 to print less often
-        // {
-        //     std::cout << "=============================\n";
-        //     std::cout
-        //         << "[DBG] mic_rms=" << mic_rms
-        //         << " render_rms=" << render_rms
-        //         << " ratio=" << (mic_rms / (render_rms + 1e-6f))
-        //         << " corrpk=" << corrpk
-        //         << " speaker_active=" << speaker_active
-        //         << " near_dominant=" << near_dominant
-        //         << " echo_like=" << echo_like
-        //         << "\n";
-        //     std::cout << "=============================\n";
-        // }
-
-        // If speaker is active and mic looks like echo, block DOA unless near-end clearly dominates
-        if (speaker_active && echo_like && !near_dominant)
             continue;
 
         double thetaBest = 0.0;
@@ -851,8 +751,12 @@ int main()
         rnnoise_destroy(st_out);
     }
 
-    Pa_StopStream(outStream);
-    Pa_CloseStream(outStream);
+    if (USE_MONITOR)
+    {
+        Pa_StopStream(outStream);
+        Pa_CloseStream(outStream);
+    }
+
     Pa_StopStream(inStream);
     Pa_CloseStream(inStream);
     Pa_Terminate();
